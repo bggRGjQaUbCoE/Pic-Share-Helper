@@ -1,9 +1,10 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Path;
 import 'package:image_cropper/image_cropper.dart';
 import 'package:pic_share_helper/icon_button.dart';
 import 'package:mime/mime.dart';
+import 'package:pic_share_helper/path.dart';
 
 class ImagePage extends StatefulWidget {
   const ImagePage({
@@ -16,10 +17,10 @@ class ImagePage extends StatefulWidget {
     required this.onSave,
   });
 
-  final String path;
+  final Path path;
   final String index;
   final VoidCallback onRemove;
-  final ValueChanged<String> onUpdate;
+  final ValueChanged<String?> onUpdate;
   final VoidCallback onShare;
   final VoidCallback onSave;
 
@@ -29,8 +30,6 @@ class ImagePage extends StatefulWidget {
 
 class _ImagePageState extends State<ImagePage>
     with AutomaticKeepAliveClientMixin {
-  String? _origin;
-
   @override
   bool get wantKeepAlive => true;
 
@@ -45,18 +44,18 @@ class _ImagePageState extends State<ImagePage>
             children: [
               const SizedBox(width: 16),
               Expanded(
-                  child: Text(
-                widget.index,
-                style: const TextStyle(fontSize: 16),
-              )),
-              if (_origin != null) ...[
+                child: Text(
+                  widget.index,
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ),
+              if (widget.path.isCropped) ...[
                 iconButton(
                   context: context,
                   tooltip: '恢复',
                   icon: Icons.restore,
                   onPressed: () {
-                    widget.onUpdate(_origin!);
-                    _origin = null;
+                    widget.onUpdate(null);
                   },
                 ),
                 const SizedBox(width: 5),
@@ -73,11 +72,12 @@ class _ImagePageState extends State<ImagePage>
                 tooltip: '裁剪',
                 icon: Icons.crop,
                 onPressed: () {
-                  String type =
-                      lookupMimeType(widget.path)?.split('/').lastOrNull ??
-                          'png';
+                  String type = lookupMimeType(widget.path.valid)
+                          ?.split('/')
+                          .lastOrNull ??
+                      'png';
                   ImageCropper().cropImage(
-                    sourcePath: widget.path,
+                    sourcePath: widget.path.valid,
                     compressFormat: _compressFormat(type),
                     uiSettings: [
                       AndroidUiSettings(
@@ -93,7 +93,6 @@ class _ImagePageState extends State<ImagePage>
                     ],
                   ).then((file) {
                     if (file != null) {
-                      _origin ??= widget.path;
                       widget.onUpdate(file.path);
                     }
                   });
@@ -119,7 +118,7 @@ class _ImagePageState extends State<ImagePage>
           const SizedBox(height: 10),
           Expanded(
             child: Image.file(
-              File(widget.path),
+              File(widget.path.valid),
             ),
           ),
           const SizedBox(height: 10),

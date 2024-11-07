@@ -12,6 +12,7 @@ import 'package:pic_share_helper/custom_toast.dart';
 import 'package:pic_share_helper/icon_button.dart';
 import 'package:pic_share_helper/image_page.dart';
 import 'package:pic_share_helper/config_model.dart';
+import 'package:pic_share_helper/path.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:saver_gallery/saver_gallery.dart';
 import 'package:share_plus/share_plus.dart';
@@ -112,7 +113,7 @@ class _MainPageState extends State<MainPage> {
       'https://github.com/bggRGjQaUbCoE/Pic-Share-Helper';
 
   late final StreamSubscription _intentSub;
-  final List<String> _paths = <String>[];
+  final List<Path> _paths = <Path>[];
 
   bool _isPicking = false;
   late final _imagePicker = ImagePicker();
@@ -137,7 +138,7 @@ class _MainPageState extends State<MainPage> {
       (List<SharedMediaFile> files) {
         if (files.isNotEmpty) {
           setState(() {
-            _paths.addAll(files.map((item) => item.path).toList());
+            _paths.addAll(files.map((item) => Path(item.path, null)).toList());
             _configList
                 .addAll(List.generate(files.length, (_) => ConfigModel()));
           });
@@ -154,7 +155,7 @@ class _MainPageState extends State<MainPage> {
         .then((List<SharedMediaFile> files) {
       if (files.isNotEmpty) {
         setState(() {
-          _paths.addAll(files.map((item) => item.path).toList());
+          _paths.addAll(files.map((item) => Path(item.path, null)).toList());
           _configList.addAll(List.generate(files.length, (_) => ConfigModel()));
         });
       }
@@ -208,7 +209,7 @@ class _MainPageState extends State<MainPage> {
               },
               onUpdate: (path) {
                 setState(() {
-                  _paths[index] = path;
+                  _paths[index].cropped = path;
                 });
               },
               onShare: () => _onShare([_paths[index]]),
@@ -342,7 +343,8 @@ class _MainPageState extends State<MainPage> {
           _imagePicker.pickMultiImage(imageQuality: 100).then((files) {
             if (files.isNotEmpty) {
               setState(() {
-                _paths.addAll(files.map((item) => item.path).toList());
+                _paths.addAll(
+                    files.map((item) => Path(item.path, null)).toList());
                 _configList
                     .addAll(List.generate(files.length, (_) => ConfigModel()));
               });
@@ -428,7 +430,7 @@ class _MainPageState extends State<MainPage> {
         ),
       );
 
-  void _onShare(List<String> paths) async {
+  void _onShare(List<Path> paths) async {
     if (_paths.isNotEmpty) {
       try {
         List<XFile> files = [];
@@ -438,10 +440,10 @@ class _MainPageState extends State<MainPage> {
                 'processing${paths.length > 1 ? ' ${i + 1}/${paths.length}' : ''}',
           );
           String type =
-              lookupMimeType(paths[i])?.split('/').lastOrNull ?? 'png';
+              lookupMimeType(paths[i].valid)?.split('/').lastOrNull ?? 'png';
           await FlutterImageCompress.compressAndGetFile(
-            paths[i],
-            '${paths[i]}${DateTime.now().millisecondsSinceEpoch}.$type',
+            paths[i].valid,
+            '${paths[i].valid}${DateTime.now().millisecondsSinceEpoch}.$type',
             quality: _currentConfig.quality.round(),
             keepExif: !_currentConfig.removeExif,
             format: _compressFormat(type),
@@ -462,7 +464,7 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
-  void _onSave(List<String> paths) async {
+  void _onSave(List<Path> paths) async {
     if (paths.isNotEmpty) {
       try {
         for (int i = 0; i < paths.length; i++) {
@@ -471,15 +473,15 @@ class _MainPageState extends State<MainPage> {
                 'processing${paths.length > 1 ? ' ${i + 1}/${paths.length}' : ''}',
           );
           String type =
-              lookupMimeType(paths[i])?.split('/').lastOrNull ?? 'png';
+              lookupMimeType(paths[i].valid)?.split('/').lastOrNull ?? 'png';
           await FlutterImageCompress.compressWithFile(
-            paths[i],
+            paths[i].valid,
             quality: _currentConfig.quality.round(),
             keepExif: !_currentConfig.removeExif,
             format: _compressFormat(type),
           ).then((data) {
             if (data != null) {
-              String imageName = paths[i].split('/').lastOrNull ??
+              String imageName = paths[i].valid.split('/').lastOrNull ??
                   '${DateTime.now().millisecondsSinceEpoch ~/ 1000}.jpg';
               SaverGallery.saveImage(
                 data,
