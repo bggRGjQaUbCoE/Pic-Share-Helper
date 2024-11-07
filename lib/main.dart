@@ -109,7 +109,7 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> {
   static const String _appName = 'Pic Share Helper';
   static const String _sourceCodeUrl =
-      'https://github.com/bggRGjQaUbCoE/Pic-Share';
+      'https://github.com/bggRGjQaUbCoE/Pic-Share-Helper';
 
   late final StreamSubscription _intentSub;
   final List<String> _paths = <String>[];
@@ -179,9 +179,9 @@ class _MainPageState extends State<MainPage> {
           _appName,
           style: TextStyle(fontSize: 18),
         ),
-        actions: actions,
+        actions: _actions,
       ),
-      bottomNavigationBar: bottomNavigationBar,
+      bottomNavigationBar: _bottomNavigationBar,
       floatingActionButton: _floatingActionButton,
       floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
       body: _paths.isNotEmpty ? _buildBody : _emptyView,
@@ -218,7 +218,7 @@ class _MainPageState extends State<MainPage> {
         ),
       );
 
-  Widget get bottomNavigationBar => StreamBuilder(
+  Widget get _bottomNavigationBar => StreamBuilder(
       stream: _indexStream.stream,
       builder: (_, snapshot) {
         return Card(
@@ -304,7 +304,7 @@ class _MainPageState extends State<MainPage> {
         );
       });
 
-  List<Widget> get actions => [
+  List<Widget> get _actions => [
         IconButton(
           onPressed: () => _onShare(_paths),
           iconSize: 20,
@@ -437,12 +437,14 @@ class _MainPageState extends State<MainPage> {
             msg:
                 'processing${paths.length > 1 ? ' ${i + 1}/${paths.length}' : ''}',
           );
-          String? mimeType = lookupMimeType(paths[i]);
+          String type =
+              lookupMimeType(paths[i])?.split('/').lastOrNull ?? 'png';
           await FlutterImageCompress.compressAndGetFile(
             paths[i],
-            '${paths[i]}${DateTime.now().millisecondsSinceEpoch}.${mimeType?.split('/').lastOrNull}',
+            '${paths[i]}${DateTime.now().millisecondsSinceEpoch}.$type',
             quality: _currentConfig.quality.round(),
             keepExif: !_currentConfig.removeExif,
+            format: _compressFormat(type),
           ).then((file) {
             if (file != null) {
               files.add(file);
@@ -468,10 +470,13 @@ class _MainPageState extends State<MainPage> {
             msg:
                 'processing${paths.length > 1 ? ' ${i + 1}/${paths.length}' : ''}',
           );
+          String type =
+              lookupMimeType(paths[i])?.split('/').lastOrNull ?? 'png';
           await FlutterImageCompress.compressWithFile(
             paths[i],
             quality: _currentConfig.quality.round(),
             keepExif: !_currentConfig.removeExif,
+            format: _compressFormat(type),
           ).then((data) {
             if (data != null) {
               String imageName = paths[i].split('/').lastOrNull ??
@@ -499,4 +504,11 @@ class _MainPageState extends State<MainPage> {
       }
     }
   }
+
+  CompressFormat _compressFormat(String type) => switch (type) {
+        'png' => CompressFormat.png,
+        'heic' => CompressFormat.heic,
+        'webp' => CompressFormat.webp,
+        _ => CompressFormat.jpeg,
+      };
 }

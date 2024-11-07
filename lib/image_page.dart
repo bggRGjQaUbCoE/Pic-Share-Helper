@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:pic_share_helper/icon_button.dart';
+import 'package:mime/mime.dart';
 
 class ImagePage extends StatefulWidget {
   const ImagePage({
@@ -72,8 +73,12 @@ class _ImagePageState extends State<ImagePage>
                 tooltip: '裁剪',
                 icon: Icons.crop,
                 onPressed: () {
+                  String type =
+                      lookupMimeType(widget.path)?.split('/').lastOrNull ??
+                          'png';
                   ImageCropper().cropImage(
                     sourcePath: widget.path,
+                    compressFormat: _compressFormat(type),
                     uiSettings: [
                       AndroidUiSettings(
                         toolbarTitle: '裁剪',
@@ -122,4 +127,9 @@ class _ImagePageState extends State<ImagePage>
       ),
     );
   }
+
+  ImageCompressFormat _compressFormat(String type) => switch (type) {
+        'png' => ImageCompressFormat.png,
+        _ => ImageCompressFormat.jpg,
+      };
 }
